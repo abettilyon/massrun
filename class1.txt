@@ -1,0 +1,8 @@
+##
+## This is a host class txt file list.  
+## use pounds as comments, and have 1 hostnem
+## per line
+##
+host1
+host2
+host3

@@ -1,0 +1,153 @@
+#!/usr/bin/perl
+#
+# Written by Allen Bettilyon, allen@bettilyon.net 
+#
+# Copyright Allen Bettilyon 
+#
+# Massrun is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# Massrun is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# For a copy of the GNU General Public License, see http://www.gnu.org/licenses
+# or, write to the Free Software Foundation, Inc. 
+#
+#   59 Temple Place 
+#   Suite 330 
+#   Boston, MA 02111-1307  USA 
+#
+# Feel free to contact me with Any questions, comments, suggestions 
+# or concernces regarding massrun.  
+#
+#################################################
+
+
+##
+## Host classes are defined by using txt files with 1 hostname per line.
+## this hash defines the class name and its corresponding txt file
+##
+my %classes = (
+	'class1'	=> 'class1.txt',
+	'class2'	=> 'class2.txt',
+);
+
+
+use Getopt::Long;
+
+
+my @classes = undef;
+my @hosts = undef;
+my $cmd = undef;
+my $parallel = undef;
+my $help = undef;
+my $show_classes = undef;
+
+
+&usage unless GetOptions(
+		'class=s' => \@classes,
+		'host=s'    => \@hosts,
+		'cmd=s'     => \$cmd,
+		'parallel'  => \$parallel,
+                'help'      => \$help,
+                'show-classes' => \$show_classes,
+             );
+
+sub usage {
+	print "Options:\n";
+	print "  --class=class1 --class=class2 [...]\n";
+	print "  --host=host1 --host=host2 [...]\n";
+        print "  --cmd=\"....\"\n";
+        print "\n";
+        print "  --help\n";
+        print "  --show-classes\n";
+	print "\n";
+	exit(1);
+}
+
+
+if( $help ){ &usage; }
+if( $show_classes ){
+    print "Configured Classes:\n";
+    foreach my $class ( keys %classes ){
+        print "$class\t\t$classes{$class}\n";
+    }
+    exit;
+}
+    
+
+
+
+
+
+
+
+foreach my $cl ( @classes ){
+
+	next unless $classes{$cl};
+
+	open(F, $classes{$cl}) or warn "Can't open file $classes{$cl}: $!";
+	
+	while(<F>){
+		chomp;
+		next if /^#/;
+		push @hosts, $_;
+	}
+
+	close(F);
+}
+
+
+
+foreach my $host ( @hosts ){
+
+	next unless ( length( $host ) );
+
+	if( $parallel ){
+		
+		my $pid = fork;
+	
+		if( $pid ){
+			next;	
+		}
+		else {
+			&run_command( $host );
+			exit;
+		}
+	}		 
+	else {
+		&run_command( $host );
+	}
+}
+
+
+
+
+sub run_command {
+	my $host = shift;
+
+	## escape any double quotes in the cmd
+	my $run_cmd= $cmd;
+	$run_cmd =~ s/"/\\"/g;
+	
+	my $shell_cmd = "ssh $host \"$run_cmd\"";
+	my $output = `$shell_cmd`;
+
+	## append a hostname tag to the output
+	my @output = split(/\n/,$output);
+	foreach my $line ( @output ){
+		print "$host :: $line\n";
+	}	
+}
+
+ 
+
+
+
+
+
+
